@@ -46,7 +46,7 @@ class TARGETSBuilder(object):
             headers_attr_prefix = "auto_"
             headers = "AutoHeaders.RECURSIVE_GLOB"
         else:
-            headers = "[" + pretty_list(headers) + "]"
+            headers = f"[{pretty_list(headers)}]"
         self.targets_file.write(targets_cfg.library_template.format(
             name=name,
             srcs=pretty_list(srcs),
@@ -63,7 +63,7 @@ class TARGETSBuilder(object):
             headers_attr_prefix = "auto_"
             headers = "AutoHeaders.RECURSIVE_GLOB"
         else:
-            headers = "[" + pretty_list(headers) + "]"
+            headers = f"[{pretty_list(headers)}]"
         self.targets_file.write(targets_cfg.rocksdb_library_template.format(
             name=name,
             srcs=pretty_list(srcs),
@@ -107,15 +107,15 @@ custom_unittest(
                       is_parallel,
                       extra_deps,
                       extra_compiler_flags):
-        exec_mode = "serial"
-        if is_parallel:
-            exec_mode = "parallel"
+        exec_mode = "parallel" if is_parallel else "serial"
         self.tests_cfg += targets_cfg.test_cfg_template % (
             test_name,
             str(src),
-            str(exec_mode),
+            exec_mode,
             extra_deps,
-            extra_compiler_flags)
+            extra_compiler_flags,
+        )
+
 
         self.total_test = self.total_test + 1
 

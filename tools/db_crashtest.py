@@ -29,29 +29,31 @@ import argparse
 default_params = {
     "acquire_snapshot_one_in": 10000,
     "backup_max_size": 100 * 1024 * 1024,
-    # Consider larger number when backups considered more stable
     "backup_one_in": 100000,
     "batch_protection_bytes_per_key": lambda: random.choice([0, 8]),
     "block_size": 16384,
-    "bloom_bits": lambda: random.choice([random.randint(0,19),
-                                         random.lognormvariate(2.3, 1.3)]),
+    "bloom_bits": lambda: random.choice(
+        [random.randint(0, 19), random.lognormvariate(2.3, 1.3)]
+    ),
     "cache_index_and_filter_blocks": lambda: random.randint(0, 1),
     "cache_size": 1048576,
     "checkpoint_one_in": 1000000,
     "compression_type": lambda: random.choice(
-        ["none", "snappy", "zlib", "bzip2", "lz4", "lz4hc", "xpress", "zstd"]),
-    "bottommost_compression_type": lambda:
-        "disable" if random.randint(0, 1) == 0 else
-        random.choice(
-            ["none", "snappy", "zlib", "bzip2", "lz4", "lz4hc", "xpress",
-             "zstd"]),
-    "checksum_type" : lambda: random.choice(["kCRC32c", "kxxHash", "kxxHash64"]),
+        ["none", "snappy", "zlib", "bzip2", "lz4", "lz4hc", "xpress", "zstd"]
+    ),
+    "bottommost_compression_type": lambda: "disable"
+    if random.randint(0, 1) == 0
+    else random.choice(
+        ["none", "snappy", "zlib", "bzip2", "lz4", "lz4hc", "xpress", "zstd"]
+    ),
+    "checksum_type": lambda: random.choice(
+        ["kCRC32c", "kxxHash", "kxxHash64"]
+    ),
     "compression_max_dict_bytes": lambda: 16384 * random.randint(0, 1),
     "compression_zstd_max_train_bytes": lambda: 65536 * random.randint(0, 1),
-    # Disabled compression_parallel_threads as the feature is not stable
-    # lambda: random.choice([1] * 9 + [4])
     "compression_parallel_threads": 1,
-    "compression_max_dict_buffer_bytes": lambda: (1 << random.randint(0, 40)) - 1,
+    "compression_max_dict_buffer_bytes": lambda: (1 << random.randint(0, 40))
+    - 1,
     "clear_column_family_one_in": 0,
     "compact_files_one_in": 1000000,
     "compact_range_one_in": 1000000,
@@ -63,13 +65,12 @@ default_params = {
     "expected_values_path": lambda: setup_expected_values_file(),
     "fail_if_options_file_error": lambda: random.randint(0, 1),
     "flush_one_in": 1000000,
-    "file_checksum_impl": lambda: random.choice(["none", "crc32c", "xxh64", "big"]),
+    "file_checksum_impl": lambda: random.choice(
+        ["none", "crc32c", "xxh64", "big"]
+    ),
     "get_live_files_one_in": 1000000,
-    # Note: the following two are intentionally disabled as the corresponding
-    # APIs are not guaranteed to succeed.
     "get_sorted_wal_files_one_in": 0,
     "get_current_wal_file_one_in": 0,
-    # Temporarily disable hash index
     "index_type": lambda: random.choice([0, 0, 0, 2, 2, 3]),
     "iterpercent": 10,
     "mark_for_compaction_one_file_in": lambda: 10 * random.randint(0, 1),
@@ -79,7 +80,7 @@ default_params = {
     "max_write_buffer_number": 3,
     "mmap_read": lambda: random.randint(0, 1),
     "nooverwritepercent": 1,
-    "open_files": lambda : random.choice([-1, -1, 100, 500000]),
+    "open_files": lambda: random.choice([-1, -1, 100, 500000]),
     "optimize_filters_for_memory": lambda: random.randint(0, 1),
     "partition_filters": lambda: random.randint(0, 1),
     "partition_pinning": lambda: random.randint(0, 3),
@@ -101,43 +102,42 @@ default_params = {
     "use_direct_reads": lambda: random.randint(0, 1),
     "use_direct_io_for_flush_and_compaction": lambda: random.randint(0, 1),
     "mock_direct_io": False,
-    "use_clock_cache": 0, # currently broken
+    "use_clock_cache": 0,
     "use_full_merge_v1": lambda: random.randint(0, 1),
     "use_merge": lambda: random.randint(0, 1),
-    # 999 -> use Bloom API
-    "ribbon_starting_level": lambda: random.choice([random.randint(-1, 10), 999]),
+    "ribbon_starting_level": lambda: random.choice(
+        [random.randint(-1, 10), 999]
+    ),
     "use_block_based_filter": lambda: random.randint(0, 1),
     "verify_checksum": 1,
     "write_buffer_size": 4 * 1024 * 1024,
     "writepercent": 35,
     "format_version": lambda: random.choice([2, 3, 4, 5, 5]),
     "index_block_restart_interval": lambda: random.choice(range(1, 16)),
-    "use_multiget" : lambda: random.randint(0, 1),
-    "periodic_compaction_seconds" :
-        lambda: random.choice([0, 0, 1, 2, 10, 100, 1000]),
-    "compaction_ttl" : lambda: random.choice([0, 0, 1, 2, 10, 100, 1000]),
-    # Test small max_manifest_file_size in a smaller chance, as most of the
-    # time we wnat manifest history to be preserved to help debug
-    "max_manifest_file_size" : lambda : random.choice(
-        [t * 16384 if t < 3 else 1024 * 1024 * 1024 for t in range(1, 30)]),
-    # Sync mode might make test runs slower so running it in a smaller chance
-    "sync" : lambda : random.choice(
-        [1 if t == 0 else 0 for t in range(0, 20)]),
-    # Disable compation_readahead_size because the test is not passing.
-    #"compaction_readahead_size" : lambda : random.choice(
-    #    [0, 0, 1024 * 1024]),
-    "db_write_buffer_size" : lambda: random.choice(
-        [0, 0, 0, 1024 * 1024, 8 * 1024 * 1024, 128 * 1024 * 1024]),
-    "avoid_unnecessary_blocking_io" : random.randint(0, 1),
-    "write_dbid_to_manifest" : random.randint(0, 1),
-    "avoid_flush_during_recovery" : random.choice(
-        [1 if t == 0 else 0 for t in range(0, 8)]),
-    "max_write_batch_group_size_bytes" : lambda: random.choice(
-        [16, 64, 1024 * 1024, 16 * 1024 * 1024]),
-    "level_compaction_dynamic_level_bytes" : True,
+    "use_multiget": lambda: random.randint(0, 1),
+    "periodic_compaction_seconds": lambda: random.choice(
+        [0, 0, 1, 2, 10, 100, 1000]
+    ),
+    "compaction_ttl": lambda: random.choice([0, 0, 1, 2, 10, 100, 1000]),
+    "max_manifest_file_size": lambda: random.choice(
+        [t * 16384 if t < 3 else 1024 * 1024 * 1024 for t in range(1, 30)]
+    ),
+    "sync": lambda: random.choice([1 if t == 0 else 0 for t in range(20)]),
+    "db_write_buffer_size": lambda: random.choice(
+        [0, 0, 0, 1024 * 1024, 8 * 1024 * 1024, 128 * 1024 * 1024]
+    ),
+    "avoid_unnecessary_blocking_io": random.randint(0, 1),
+    "write_dbid_to_manifest": random.randint(0, 1),
+    "avoid_flush_during_recovery": random.choice(
+        [1 if t == 0 else 0 for t in range(8)]
+    ),
+    "max_write_batch_group_size_bytes": lambda: random.choice(
+        [16, 64, 1024 * 1024, 16 * 1024 * 1024]
+    ),
+    "level_compaction_dynamic_level_bytes": True,
     "verify_checksum_one_in": 1000000,
     "verify_db_one_in": 100000,
-    "continuous_verification_interval" : 0,
+    "continuous_verification_interval": 0,
     "max_key_len": 3,
     "key_len_percent_dist": "1,30,69",
     "read_fault_one_in": lambda: random.choice([0, 1000]),
@@ -148,9 +148,11 @@ default_params = {
     "get_property_one_in": 1000000,
     "paranoid_file_checks": lambda: random.choice([0, 1, 1, 1]),
     "max_write_buffer_size_to_maintain": lambda: random.choice(
-        [0, 1024 * 1024, 2 * 1024 * 1024, 4 * 1024 * 1024, 8 * 1024 * 1024]),
+        [0, 1024 * 1024, 2 * 1024 * 1024, 4 * 1024 * 1024, 8 * 1024 * 1024]
+    ),
     "user_timestamp_size": 0,
 }
+
 
 _TEST_DIR_ENV_VAR = 'TEST_TMPDIR'
 _DEBUG_LEVEL_ENV_VAR = 'DEBUG_LEVEL'
@@ -162,12 +164,12 @@ def is_release_mode():
 
 
 def get_dbname(test_name):
-    test_dir_name = "rocksdb_crashtest_" + test_name
+    test_dir_name = f"rocksdb_crashtest_{test_name}"
     test_tmpdir = os.environ.get(_TEST_DIR_ENV_VAR)
     if test_tmpdir is None or test_tmpdir == "":
         dbname = tempfile.mkdtemp(prefix=test_dir_name)
     else:
-        dbname = test_tmpdir + "/" + test_dir_name
+        dbname = f"{test_tmpdir}/{test_dir_name}"
         shutil.rmtree(dbname, True)
         os.mkdir(dbname)
     return dbname
@@ -184,7 +186,7 @@ def setup_expected_values_file():
             prefix=expected_file_name, delete=False).name
     else:
         # if tmpdir is specified, store the expected_values_file in the same dir
-        expected_values_file = test_tmpdir + "/" + expected_file_name
+        expected_values_file = f"{test_tmpdir}/{expected_file_name}"
         if os.path.exists(expected_values_file):
             os.remove(expected_values_file)
         open(expected_values_file, 'a').close()
@@ -325,9 +327,10 @@ def finalize_and_sanitize(src_params):
             or dest_params["use_direct_reads"] == 1) and \
             not is_direct_io_supported(dest_params["db"]):
         if is_release_mode():
-            print("{} does not support direct IO. Disabling use_direct_reads and "
-                    "use_direct_io_for_flush_and_compaction.\n".format(
-                        dest_params["db"]))
+            print(
+                f'{dest_params["db"]} does not support direct IO. Disabling use_direct_reads and use_direct_io_for_flush_and_compaction.\n'
+            )
+
             dest_params["use_direct_reads"] = 0
             dest_params["use_direct_io_for_flush_and_compaction"] = 0
         else:
@@ -386,16 +389,16 @@ def finalize_and_sanitize(src_params):
 def gen_cmd_params(args):
     params = {}
 
-    params.update(default_params)
+    params |= default_params
     if args.test_type == 'blackbox':
         params.update(blackbox_default_params)
-    if args.test_type == 'whitebox':
+    elif args.test_type == 'whitebox':
         params.update(whitebox_default_params)
     if args.simple:
         params.update(simple_default_params)
         if args.test_type == 'blackbox':
             params.update(blackbox_simple_default_params)
-        if args.test_type == 'whitebox':
+        elif args.test_type == 'whitebox':
             params.update(whitebox_simple_default_params)
     if args.cf_consistency:
         params.update(cf_consistency_params)
@@ -422,14 +425,29 @@ def gen_cmd_params(args):
 
 def gen_cmd(params, unknown_params):
     finalzied_params = finalize_and_sanitize(params)
-    cmd = [stress_cmd] + [
-        '--{0}={1}'.format(k, v)
-        for k, v in [(k, finalzied_params[k]) for k in sorted(finalzied_params)]
-        if k not in set(['test_type', 'simple', 'duration', 'interval',
-                         'random_kill_odd', 'cf_consistency', 'txn',
-                         'test_best_efforts_recovery', 'enable_ts', 'stress_cmd'])
-        and v is not None] + unknown_params
-    return cmd
+    return (
+        [stress_cmd]
+        + [
+            '--{0}={1}'.format(k, v)
+            for k, v in [
+                (k, finalzied_params[k]) for k in sorted(finalzied_params)
+            ]
+            if k
+            not in {
+                'test_type',
+                'simple',
+                'duration',
+                'interval',
+                'random_kill_odd',
+                'cf_consistency',
+                'txn',
+                'test_best_efforts_recovery',
+                'enable_ts',
+                'stress_cmd',
+            }
+            and v is not None
+        ]
+    ) + unknown_params
 
 
 # Inject inconsistency to db directory.
@@ -440,7 +458,7 @@ def inject_inconsistencies_to_db_dir(dir_path):
     for f in files:
         m = file_num_rgx.search(f)
         if m and not f.startswith('LOG'):
-            largest_fnum = max(largest_fnum, int(m.group('number')))
+            largest_fnum = max(largest_fnum, int(m['number']))
 
     candidates = [
         f for f in files if re.search(r'[0-9]+\.sst', f)
@@ -453,7 +471,7 @@ def inject_inconsistencies_to_db_dir(dir_path):
         if rnd < 10:
             os.unlink(f_path)
             deleted = deleted + 1
-        elif 10 <= rnd and rnd < 30:
+        elif rnd < 30:
             with open(f_path, "a") as fd:
                 fd.write('12345678')
             corrupted = corrupted + 1
@@ -464,7 +482,7 @@ def inject_inconsistencies_to_db_dir(dir_path):
     for num in range(largest_fnum + 1, largest_fnum + 10):
         rnd = random.randint(0, 1)
         fname = ("MANIFEST-%06d" % num) if rnd == 0 else ("%06d.sst" % num)
-        print('Write %s' % fname)
+        print(f'Write {fname}')
         with open(os.path.join(dir_path, fname), "w") as fd:
             fd.write("garbage")
 
@@ -517,7 +535,7 @@ def blackbox_crash_main(args, unknown_args):
         for line in errs.split('\n'):
             if line != '' and  not line.startswith('WARNING'):
                 print('stderr has error message:')
-                print('***' + line + '***')
+                print(f'***{line}***')
 
         time.sleep(1)  # time to stabilize before the next run
 
@@ -559,28 +577,30 @@ def whitebox_crash_main(args, unknown_args):
             # increases change of triggering them. Mode 2 covers even less
             # frequent kill points and further increases triggering change.
             if kill_mode == 0:
-                additional_opts.update({
-                    "kill_random_test": kill_random_test,
-                })
+                additional_opts["kill_random_test"] = kill_random_test
             elif kill_mode == 1:
-                if cmd_params.get('disable_wal', 0) == 1:
-                    my_kill_odd = kill_random_test // 50 + 1
-                else:
-                    my_kill_odd = kill_random_test // 10 + 1
-                additional_opts.update({
+                my_kill_odd = (
+                    kill_random_test // 50 + 1
+                    if cmd_params.get('disable_wal', 0) == 1
+                    else kill_random_test // 10 + 1
+                )
+
+                additional_opts |= {
                     "kill_random_test": my_kill_odd,
                     "kill_exclude_prefixes": "WritableFileWriter::Append,"
                     + "WritableFileWriter::WriteBuffered",
-                })
+                }
+
             elif kill_mode == 2:
                 # TODO: May need to adjust random odds if kill_random_test
                 # is too small.
-                additional_opts.update({
+                additional_opts |= {
                     "kill_random_test": (kill_random_test // 5000 + 1),
                     "kill_exclude_prefixes": "WritableFileWriter::Append,"
                     "WritableFileWriter::WriteBuffered,"
                     "PosixMmapFile::Allocate,WritableFileWriter::Flush",
-                })
+                }
+
             # Run kill mode 0, 1 and 2 by turn.
             kill_mode = (kill_mode + 1) % 3
         elif check_mode == 1:
@@ -593,9 +613,7 @@ def whitebox_crash_main(args, unknown_args):
             # Single level universal has a lot of special logic. Ensure we cover
             # it sometimes.
             if random.randint(0, 1) == 1:
-                additional_opts.update({
-                    "num_levels": 1,
-                })
+                additional_opts["num_levels"] = 1
         elif check_mode == 2:
             # normal run with FIFO compaction mode
             # ops_per_thread is divided by 5 because FIFO compaction
@@ -653,8 +671,7 @@ def whitebox_crash_main(args, unknown_args):
         stderrdata = stderrdata.lower()
         errorcount = (stderrdata.count('error') -
                       stderrdata.count('got errors 0 times'))
-        print("#times error occurred in output is " + str(errorcount) +
-                "\n")
+        print((f"#times error occurred in output is {str(errorcount)}" + "\n"))
 
         if (errorcount > 0):
             print("TEST FAILED. Output has 'error'!!!\n")
@@ -699,14 +716,16 @@ def main():
                       + list(ts_params.items()))
 
     for k, v in all_params.items():
-        parser.add_argument("--" + k, type=type(v() if callable(v) else v))
+        parser.add_argument(f"--{k}", type=type(v() if callable(v) else v))
     # unknown_args are passed directly to db_stress
     args, unknown_args = parser.parse_known_args()
 
     test_tmpdir = os.environ.get(_TEST_DIR_ENV_VAR)
     if test_tmpdir is not None and not os.path.isdir(test_tmpdir):
-        print('%s env var is set to a non-existent directory: %s' %
-                (_TEST_DIR_ENV_VAR, test_tmpdir))
+        print(
+            f'{_TEST_DIR_ENV_VAR} env var is set to a non-existent directory: {test_tmpdir}'
+        )
+
         sys.exit(1)
 
     if args.stress_cmd:

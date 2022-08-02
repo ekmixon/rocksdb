@@ -92,11 +92,15 @@ class TestDBBenchRunnerMethods(unittest.TestCase):
             self.db_options.generate_options_config('12345')
         )
         for arg in self.pos_args[2:]:
-            opt_args_str += (' --' + arg)
+            opt_args_str += f' --{arg}'
         expected_command = (
-            self.pos_args[0] + ' --benchmarks=' + self.pos_args[1] +
-            ' --statistics --perf_level=3 --db=' + db_path + opt_args_str
-        )
+            (
+                f'{self.pos_args[0]} --benchmarks={self.pos_args[1]}'
+                + ' --statistics --perf_level=3 --db='
+            )
+            + db_path
+        ) + opt_args_str
+
         self.assertEqual(experiment_command, expected_command)
 
 
